@@ -1,0 +1,39 @@
+click the C subnets you want. Or, subnetting to C-size or smaller subnets.
+No vertical overlaps (unclick red).
+Top row is default C network, i.e. not subnetted.
+Number is the value of the fourth octet of the network address of the
+subnet.
+First column is the mask prefix and the value of the mask's fourth octet.
+/24 .0 	0
+/25 .128 	0 	128
+/26 .192 	0 	64 	128 	192
+/27 .224 	0 	32 	64 	96 	128 	160 	192 	224
+/28 .240 	0 	16 	32 	48 	64 	80 	96 	112 	128 	144 	160 	176 	192 	208 	
+224 	240
+/29 .248 	0 	8 	16 	24 	32 	40 	48 	56 	64 	72 	80 	88 	96 	104 	112 	
+120 	128 	136 	144 	152 	160 	168 	176 	182 	192 	200 	208 	216 	224 	
+232 	240 	248
+/30 .252 	 0  	 4  	 8  	12  	16  	20  	24  	28  	32  	36  	40  	44  	
+48  	52  	56  	60  	64  	68  	72  	76  	80  	84  	88  	92  	96  	100 	
+104 	108 	112 	116 	120 	124 	128 	132 	136 	140 	144 	148 	152 	156 	
+160 	164 	168 	172 	176 	180 	184 	188 	192 	196 	200 	204 	208 	212 	
+216 	220 	224 	228 	232 	236 	240 	244 	248 	252
+
+Classful addressing is officially obsoleted by /classless/ addressing
+(CIDR: classless inter-domain routing).
+In classless addressing, boundary between network ID part of the IP
+address and the host ID part of the IP address can be anywhere using a /
+variable-length subnet mask (VLSM)/, which allows networks to have any
+power of 2 (-2) hosts i.e. 2, 6, 14, 30, 62, 126, 510, 1022, etc. A
+network can be /subnetted/ into smaller networks. Also, smaller networks
+can be aggregated into a larger network with /supernetting/.
+Subnetting such that all the subnets are the same size and have the same
+mask: FLSM (fixed length subnet mask).
+
+Private addresses. Class A 10.0.0.0 network can be subnetted into 16K C-
+size subnets. Each class B 172.16-31.0.0 network can be subnetted into
+256 C-size subnets, for a total of 4K C-size subnets.
+
+more about class C subnetting <https://davidwills.us/cmit350/
+classCsubnetting.html>
+
