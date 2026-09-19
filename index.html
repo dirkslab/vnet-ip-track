@@ -8,7 +8,7 @@
       name="description"
       content="Offline Azure VNet address-space planner. Carve subnets on a CIDR map, see overlaps, export the plan."
     />
-    <link rel="stylesheet" href="css/planner.css" />
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' fill='%23122033'/%3E%3Crect x='1' y='1' width='6' height='6' fill='%233aa0ff'/%3E%3Crect x='9' y='1' width='6' height='6' fill='%23f0a202'/%3E%3Crect x='1' y='9' width='6' height='6' fill='%232ec4b6'/%3E%3C/svg%3E" />
   </head>
   <body>
     <a class="skip-link" href="#workspace">Skip to planner</a>
@@ -155,12 +155,14 @@
               <p class="section-sub">
                 First column is the mask prefix. Cell numbers are the varying octet of the
                 network address — the original “Class C notepad” idea, now VLSM-correct.
+                Dim cells are already covered; click <em>Free window</em> to find empty space.
               </p>
             </div>
             <div class="window-nav">
               <button type="button" class="ghost" id="btn-win-prev" aria-label="Previous window">←</button>
               <span id="window-label" class="window-label"></span>
               <button type="button" class="ghost" id="btn-win-next" aria-label="Next window">→</button>
+              <button type="button" class="ghost" id="btn-win-free">Free window</button>
             </div>
           </div>
           <div id="lattice" class="lattice" role="group" aria-label="Prefix lattice"></div>

@@ -286,7 +286,17 @@
     var existing = coveringSubnet(ipInt);
     if (existing && existing.block.prefix <= block.prefix) {
       state.selectedId = existing.id;
-      jumpWindowTo(existing.block);
+      if (existing.block.prefix < block.prefix) {
+        toast(
+          "Blocked by " +
+            existing.name +
+            " " +
+            existing.block.cidr +
+            " — remove it before carving a smaller subnet here"
+        );
+      } else if (existing.block.prefix === block.prefix) {
+        toast("Selected " + existing.name + " " + existing.block.cidr);
+      }
       persist();
       render();
       return;
@@ -323,6 +333,26 @@
     var next = state.window.network + dir * size;
     if (next < state.parent.network || next + size - 1 > state.parent.broadcast) return;
     state.window = Cidr.fromNetwork(next, state.window.prefix);
+    persist();
+    render();
+  }
+
+  function jumpToFreeWindow() {
+    if (!state.parent) return;
+    var holes = Cidr.freeBlocks(state.parent, blocksOfPlan());
+    if (!holes.length) {
+      toast("No free window left in this address space");
+      return;
+    }
+    var hole = holes[0];
+    for (var i = 0; i < holes.length; i++) {
+      if (holes[i].prefix <= 24) {
+        hole = holes[i];
+        break;
+      }
+    }
+    jumpWindowTo(hole);
+    toast("Showing leftover " + hole.cidr);
     persist();
     render();
   }
@@ -1009,6 +1039,7 @@
     document.getElementById("btn-win-next").addEventListener("click", function () {
       stepWindow(1);
     });
+    document.getElementById("btn-win-free").addEventListener("click", jumpToFreeWindow);
 
     document.querySelectorAll("[data-parent]").forEach(function (btn) {
       btn.addEventListener("click", function () {
