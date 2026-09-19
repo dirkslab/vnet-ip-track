@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>VNet IP Track — Azure subnet planner</title>
+    <meta
+      name="description"
+      content="Offline Azure VNet address-space planner. Carve subnets on a CIDR map, see overlaps, export the plan."
+    />
+    <link rel="stylesheet" href="css/planner.css" />
+  </head>
+  <body>
+    <a class="skip-link" href="#workspace">Skip to planner</a>
+
+    <header class="topbar">
+      <div class="brand">
+        <span class="brand-mark" aria-hidden="true"></span>
+        <div>
+          <p class="eyebrow">Dirk Slabbert · exploratory demo</p>
+          <h1>VNet IP Track</h1>
+        </div>
+      </div>
+      <p class="lede">
+        Carve an Azure virtual network into non-overlapping subnets.
+        The map is modern CIDR; the lattice is the old Class-C teaching grid.
+      </p>
+      <div class="top-actions">
+        <button type="button" class="ghost" id="btn-example" title="Load a typical hub VNet">
+          Load hub example
+        </button>
+        <button type="button" class="ghost" id="btn-export">Export CSV</button>
+        <button type="button" class="ghost" id="btn-copy">Copy table</button>
+      </div>
+    </header>
+
+    <main id="workspace" class="workspace">
+      <aside class="panel controls" aria-label="VNet and subnet controls">
+        <section>
+          <h2>Address space</h2>
+          <label>
+            VNet name
+            <input id="vnet-name" type="text" spellcheck="false" autocomplete="off" value="hub-vnet" />
+          </label>
+          <label>
+            Parent CIDR
+            <input
+              id="parent-cidr"
+              type="text"
+              spellcheck="false"
+              autocomplete="off"
+              value="10.0.0.0/16"
+              placeholder="10.0.0.0/16"
+            />
+          </label>
+          <p class="field-hint" id="parent-meta"></p>
+          <p class="field-error" id="parent-error" hidden></p>
+          <div class="preset-row" role="group" aria-label="Common private ranges">
+            <button type="button" class="chip" data-parent="10.0.0.0/16">10.0.0.0/16</button>
+            <button type="button" class="chip" data-parent="10.1.0.0/16">10.1.0.0/16</button>
+            <button type="button" class="chip" data-parent="172.16.0.0/12">172.16.0.0/12</button>
+            <button type="button" class="chip" data-parent="192.168.0.0/24">192.168.0.0/24</button>
+          </div>
+        </section>
+
+        <section>
+          <h2>Carve a subnet</h2>
+          <label>
+            Subnet name
+            <input id="subnet-name" type="text" spellcheck="false" autocomplete="off" placeholder="snet-app" />
+          </label>
+          <div class="two-col">
+            <label>
+              Prefix
+              <select id="carve-prefix"></select>
+            </label>
+            <label>
+              Or exact CIDR
+              <input id="exact-cidr" type="text" spellcheck="false" autocomplete="off" placeholder="10.0.4.0/22" />
+            </label>
+          </div>
+          <div class="btn-row">
+            <button type="button" class="primary" id="btn-next-free">Place in next free</button>
+            <button type="button" class="ghost" id="btn-add-exact">Add exact CIDR</button>
+          </div>
+          <p class="field-hint">
+            Or click the address-space map / prefix lattice. Hover previews the aligned block.
+            Red means a vertical overlap — same rule as the original notes.
+          </p>
+        </section>
+
+        <section>
+          <h2>Equal split</h2>
+          <div class="two-col">
+            <label>
+              Pieces
+              <select id="split-count">
+                <option value="2">2</option>
+                <option value="4" selected>4</option>
+                <option value="8">8</option>
+                <option value="16">16</option>
+              </select>
+            </label>
+            <div class="btn-row split-actions">
+              <button type="button" class="ghost" id="btn-split-vnet">Split VNet</button>
+              <button type="button" class="ghost" id="btn-split-hole">Split largest hole</button>
+            </div>
+          </div>
+        </section>
+
+        <section>
+          <h2>Options</h2>
+          <label class="check">
+            <input id="azure-mode" type="checkbox" checked />
+            Count Azure-usable hosts
+            <span class="field-hint">
+              Azure keeps the first four addresses and the last address in every subnet
+              (network, gateway, two DNS, broadcast). Minimum practical size is /29.
+            </span>
+          </label>
+          <div class="btn-row">
+            <button type="button" class="ghost danger" id="btn-remove">Remove selected</button>
+            <button type="button" class="ghost danger" id="btn-clear">Clear plan</button>
+          </div>
+        </section>
+
+        <section class="stat-card" aria-live="polite">
+          <h2>Utilization</h2>
+          <div class="meter" aria-hidden="true"><span id="util-fill"></span></div>
+          <p id="util-label" class="stat-line"></p>
+          <p id="plan-status" class="stat-line"></p>
+        </section>
+      </aside>
+
+      <div class="stage">
+        <section class="panel" aria-labelledby="map-heading">
+          <div class="section-head">
+            <div>
+              <h2 id="map-heading">Address-space map</h2>
+              <p class="section-sub" id="map-caption"></p>
+            </div>
+            <p class="legend">
+              <span class="swatch free"></span> free
+              <span class="swatch taken"></span> allocated
+              <span class="swatch blocked"></span> overlap / blocked
+            </p>
+          </div>
+          <div id="map" class="map-grid" role="grid" aria-label="VNet address space tiles"></div>
+        </section>
+
+        <section class="panel" aria-labelledby="lattice-heading">
+          <div class="section-head">
+            <div>
+              <h2 id="lattice-heading">Prefix lattice</h2>
+              <p class="section-sub">
+                First column is the mask prefix. Cell numbers are the varying octet of the
+                network address — the original “Class C notepad” idea, now VLSM-correct.
+              </p>
+            </div>
+            <div class="window-nav">
+              <button type="button" class="ghost" id="btn-win-prev" aria-label="Previous window">←</button>
+              <span id="window-label" class="window-label"></span>
+              <button type="button" class="ghost" id="btn-win-next" aria-label="Next window">→</button>
+            </div>
+          </div>
+          <div id="lattice" class="lattice" role="group" aria-label="Prefix lattice"></div>
+        </section>
+
+        <section class="panel" aria-labelledby="table-heading">
+          <div class="section-head">
+            <h2 id="table-heading">Subnet table</h2>
+            <p class="section-sub" id="table-caption"></p>
+          </div>
+          <div class="table-wrap">
+            <table class="plan-table">
+              <thead>
+                <tr>
+                  <th>Name</th>
+                  <th>CIDR</th>
+                  <th>Mask</th>
+                  <th>Network</th>
+                  <th>Usable range</th>
+                  <th>Broadcast</th>
+                  <th class="num">Hosts</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody id="plan-body"></tbody>
+            </table>
+          </div>
+        </section>
+
+        <section class="panel leftover-panel" aria-labelledby="free-heading">
+          <h2 id="free-heading">Unallocated CIDR leftovers</h2>
+          <p class="section-sub">
+            VLSM holes packed back into the largest aligned blocks — what you can still assign.
+          </p>
+          <ul id="leftovers" class="leftovers"></ul>
+        </section>
+      </div>
+    </main>
+
+    <footer class="foot">
+      <p>
+        Static demo — open <code>index.html</code> in a browser. Nothing is sent anywhere.
+        Plan is kept in this tab (localStorage + the URL hash) so you can refresh or share a link.
+      </p>
+    </footer>
+
+    <script src="js/cidr.js"></script>
+    <script src="js/planner.js"></script>
+  </body>
+</html>
