@@ -181,6 +181,23 @@
     render();
   }
 
+  // Manual "Load hub example": on phones the map sits far below the fold (and a
+  // first visit already shows the example), so the tap looked like a no-op.
+  // Confirm in the status line and scroll the map into view when it is off-screen.
+  function loadExampleFromButton() {
+    loadExample();
+    toast("Loaded hub example: " + state.subnets.length + " subnets in " + state.vnetName);
+    var section = els.map.closest("section") || els.map;
+    var top = section.getBoundingClientRect().top;
+    var vh = window.innerHeight || document.documentElement.clientHeight;
+    if (top >= 0 && top < vh * 0.5) return;
+    try {
+      section.scrollIntoView({ behavior: "smooth", block: "start" });
+    } catch (err) {
+      section.scrollIntoView(true);
+    }
+  }
+
   function placeNextFree() {
     if (!state.parent) return;
     var prefix = Number(els.carvePrefix.value);
@@ -1030,7 +1047,7 @@
     document.getElementById("btn-split-hole").addEventListener("click", splitHole);
     document.getElementById("btn-remove").addEventListener("click", removeSelected);
     document.getElementById("btn-clear").addEventListener("click", clearPlan);
-    document.getElementById("btn-example").addEventListener("click", loadExample);
+    document.getElementById("btn-example").addEventListener("click", loadExampleFromButton);
     document.getElementById("btn-export").addEventListener("click", exportCsv);
     document.getElementById("btn-copy").addEventListener("click", copyTable);
     document.getElementById("btn-win-prev").addEventListener("click", function () {
